@@ -6,14 +6,13 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
 import org.json.JSONObject;
 
 public class LoginController {
 
     public Result login(String email, String password) {
         try {
-            String apiKey = "AIzaSyDc1AAmZzAjPUVg-wWp9H8gLjch00_hayM"; 
+            String apiKey = "AIzaSyCSfA9EgxVIV7-dQXmJQdwFM9x0QPAAvFo";
             URL url = new URL("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + apiKey);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -39,8 +38,7 @@ public class LoginController {
                     response.append(inputLine);
                 }
                 in.close();
-
-                // Optional: parse ID token or other data
+                
                 JSONObject jsonResponse = new JSONObject(response.toString());
                 String idToken = jsonResponse.optString("idToken");
                 return new Result(true, "Login successful. ID Token: " + idToken);
@@ -54,20 +52,19 @@ public class LoginController {
                 in.close();
                 return new Result(false, "Failed to log in user: " + response.toString());
             }
-
         } catch (Exception e) {
             e.printStackTrace();
             return new Result(false, "Failed to log in user: " + e.getMessage());
         }
     }
 
-    
     public static class Result {
         public final boolean success;
         public final String message;
-
+        
         public Result(boolean success, String message) {
             this.success = success;
             this.message = message;
-        }}
+        }
+    }
 }

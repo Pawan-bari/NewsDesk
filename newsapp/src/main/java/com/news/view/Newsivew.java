@@ -7,6 +7,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -19,6 +21,7 @@ public class Newsivew {
     private Stage primaryStage;
     private VBox newsContainer;
     private ApiController apiController = new ApiController();
+    private String currentCategory = "";
 
     public Newsivew(SignUpView signUpView, Stage primaryStage) {
         this.primaryStage = primaryStage;
@@ -39,12 +42,12 @@ public class Newsivew {
 
         String[] categories = {"general", "business", "entertainment", "health", "science", "sports"};
         String[] gradients = {
-                "-fx-background-color: linear-gradient(to right,rgb(86, 199,227), #6dd5ed);",
-                "-fx-background-color: linear-gradient(to right, #cc2b5e, #753a88);",
-                "-fx-background-color: linear-gradient(to right, #ee9ca7,rgb(248, 138, 150));",
-                "-fx-background-color: linear-gradient(to right, #56ab2f, #a8e063);",
-                "-fx-background-color: linear-gradient(to right, #614385, #516395);",
-                "-fx-background-color: linear-gradient(to right, #e65c00, #f9d423);"
+            "-fx-background-color: linear-gradient(to right,rgb(86, 199,227), #6dd5ed);",
+            "-fx-background-color: linear-gradient(to right, #cc2b5e, #753a88);",
+            "-fx-background-color: linear-gradient(to right, #ee9ca7,rgb(248, 138, 150));",
+            "-fx-background-color: linear-gradient(to right, #56ab2f, #a8e063);",
+            "-fx-background-color: linear-gradient(to right, #614385, #516395);",
+            "-fx-background-color: linear-gradient(to right, #e65c00, #f9d423);"
         };
 
         int index = 0;
@@ -56,7 +59,7 @@ public class Newsivew {
                     btn.setPrefWidth(190);
                     btn.setPrefHeight(200);
                     btn.setStyle(gradients[index] +
-                            " -fx-text-fill: white; -fx-font-size: 22; -fx-font-weight: bold; -fx-background-radius: 18;");
+                        " -fx-text-fill: white; -fx-font-size: 22; -fx-font-weight: bold; -fx-background-radius: 18;");
                     btn.setOnAction(e -> handleCategorySelection(category));
 
                     ScaleTransition stEnlarge = new ScaleTransition(Duration.millis(180), btn);
@@ -65,6 +68,7 @@ public class Newsivew {
                     ScaleTransition stNormal = new ScaleTransition(Duration.millis(180), btn);
                     stNormal.setToX(1.0);
                     stNormal.setToY(1.0);
+
                     btn.setOnMouseEntered(e -> stEnlarge.playFromStart());
                     btn.setOnMouseExited(e -> stNormal.playFromStart());
 
@@ -92,22 +96,24 @@ public class Newsivew {
     }
 
     private void handleCategorySelection(String category) {
-        if (category.equals("general")) {
-            showGeneralNews();
-        } else {
-            showCategorySources(category);
-        }
+        currentCategory = category;
+        showCategoryNews(category);
     }
 
-    private void showGeneralNews() {
-        primaryStage.setTitle("C2W News App");
-        newsContainer = new VBox(10);
+    // UNIFIED METHOD for all categories with images
+    private void showCategoryNews(String category) {
+        primaryStage.setTitle("C2W News App - " + capitalize(category) + " News");
+        newsContainer = new VBox(15);
         newsContainer.setPadding(new Insets(10));
+        newsContainer.setAlignment(Pos.TOP_CENTER);
+        
         ScrollPane scrollPane = new ScrollPane(newsContainer);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: #FFFAF5;");
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
-        Button loadNewsButton = new Button("Load News");
+        Button loadNewsButton = new Button("Load " + capitalize(category) + " News");
         loadNewsButton.setStyle("-fx-background-color: #2196f3; -fx-text-fill: white; -fx-font-size: 16; -fx-background-radius: 24;");
         loadNewsButton.setOnMouseEntered(e -> loadNewsButton.setStyle("-fx-background-color:rgb(23, 170, 33); -fx-text-fill: white; -fx-font-size: 16; -fx-background-radius: 24;"));
         loadNewsButton.setOnMouseExited(e -> loadNewsButton.setStyle("-fx-background-color:#2196f3; -fx-text-fill: white; -fx-font-size: 16; -fx-background-radius: 24;"));
@@ -121,7 +127,7 @@ public class Newsivew {
 
         loadNewsButton.setOnAction(e -> {
             loader.setVisible(true);
-            loadNewsAsync(loader);
+            loadCategoryNewsAsync(category, loader);
         });
 
         HBox bottomBox = new HBox(16, loadNewsButton, loader, backButton);
@@ -137,89 +143,48 @@ public class Newsivew {
         primaryStage.setResizable(false);
         primaryStage.show();
 
+        // Auto-load news on page load
         loader.setVisible(true);
-        loadNewsAsync(loader);
+        loadCategoryNewsAsync(category, loader);
     }
 
-    private void showCategorySources(String category) {
-        VBox sourcesContainer = new VBox(10);
-        sourcesContainer.setPadding(new Insets(10));
-        sourcesContainer.setAlignment(Pos.TOP_CENTER);
-
-        ProgressIndicator loader = new ProgressIndicator();
-        loader.setVisible(true);
-
-        Button backButton = new Button("Back");
-        backButton.setStyle("-fx-background-color: #e53935; -fx-text-fill: white; -fx-font-size: 16; -fx-background-radius: 24;");
-        backButton.setOnAction(e -> showCategorySelection());
-
-        BorderPane root = new BorderPane();
-        ScrollPane scrollPane = new ScrollPane(sourcesContainer);
-        scrollPane.setFitToWidth(true);
-        root.setCenter(scrollPane);
-
-        HBox bottomBox = new HBox(16, loader, backButton);
-        bottomBox.setPadding(new Insets(20, 0, 40, 0));
-        bottomBox.setAlignment(Pos.CENTER);
-        root.setBottom(bottomBox);
-
-        Scene scene = new Scene(root, 545, 800);
-        primaryStage.setScene(scene);
-        primaryStage.show();
-
+    // UNIFIED METHOD to load news for any category with images
+    private void loadCategoryNewsAsync(String category, ProgressIndicator loader) {
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
-                JSONArray sources = apiController.getNews(category);
-                Platform.runLater(() -> {
-                    loader.setVisible(false);
-                    sourcesContainer.getChildren().clear();
-                    if (sources.length() == 0) {
-                        sourcesContainer.getChildren().add(new Label("No sources found for this category."));
-                    }
-                    for (int i = 0; i < sources.length(); i++) {
-                        JSONObject source = sources.getJSONObject(i);
-                        String name = source.getString("name");
-                        String description = source.optString("description", "");
-                        String urlSource = source.getString("url");
-                        HBox card = createSourceCard(name, description, urlSource);
-                        sourcesContainer.getChildren().add(card);
-                    }
-                });
-                return null;
-            }
-        };
-        new Thread(task).start();
-    }
-
-    private void loadNewsAsync(ProgressIndicator loader) {
-        Task<Void> task = new Task<Void>() {
-            @Override
-            protected Void call() throws Exception {
-                JSONArray newsArray = apiController.getNews("general");
+                // Get actual headlines with images for any category
+                JSONArray newsArray = apiController.getHeadlines(category, "us");
+                
                 Platform.runLater(() -> {
                     loader.setVisible(false);
                     newsContainer.getChildren().clear();
-                    for (int i = 0; i < newsArray.length(); i++) {
-                        JSONObject news = newsArray.getJSONObject(i);
-                        String title = news.optString("title", "No Title");
-                        String url = news.optString("url", "");
-                        Label label = new Label(title);
-                        if (!url.isEmpty()) {
-                            Hyperlink link = new Hyperlink("Read more");
-                            link.setOnAction(e -> {
-                                try {
-                                    java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                }
-                            });
-                            VBox vbox = new VBox(label, link);
-                            vbox.setPadding(new Insets(10));
-                            newsContainer.getChildren().add(vbox);
-                        } else {
-                            newsContainer.getChildren().add(label);
+                    
+                    if (newsArray != null && newsArray.length() > 0) {
+                        for (int i = 0; i < Math.min(newsArray.length(), 20); i++) { // Limit to 20 articles
+                            JSONObject article = newsArray.getJSONObject(i);
+                            
+                            String title = article.optString("title", "No Title");
+                            String description = article.optString("description", "No description available");
+                            String url = article.optString("url", "");
+                            String imageUrl = article.optString("urlToImage", "");
+                            String source = "Unknown Source";
+                            String publishedAt = article.optString("publishedAt", "");
+                            
+                            // Get source name
+                            if (article.has("source") && !article.isNull("source")) {
+                                JSONObject sourceObj = article.getJSONObject("source");
+                                source = sourceObj.optString("name", "Unknown Source");
+                            }
+                            
+                            // Create news card with category-specific styling
+                            VBox newsCard = createNewsCard(title, description, source, url, imageUrl, publishedAt, category);
+                            newsContainer.getChildren().add(newsCard);
                         }
+                    } else {
+                        Label noNewsLabel = new Label("No " + category + " news available at the moment.");
+                        noNewsLabel.setStyle("-fx-font-size: 16; -fx-text-fill: #666;");
+                        newsContainer.getChildren().add(noNewsLabel);
                     }
                 });
                 return null;
@@ -228,31 +193,132 @@ public class Newsivew {
         new Thread(task).start();
     }
 
-    private HBox createSourceCard(String name, String description, String urlSource) {
-        HBox card = new HBox(10);
-        card.setPadding(new Insets(10));
-        card.setStyle("-fx-background-color: #ffffff; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: #ddd;");
-        card.setAlignment(Pos.CENTER_LEFT);
-
-        VBox textContainer = new VBox(5);
-        Label title = new Label(name);
-        title.setStyle("-fx-font-size: 18; -fx-font-weight: bold;");
-        Label desc = new Label(description);
-        desc.setWrapText(true);
-
-        Hyperlink link = new Hyperlink(urlSource);
-        link.setOnAction(e -> {
+    // Enhanced news card with category-specific emojis and colors
+    private VBox createNewsCard(String title, String description, String source, String url, String imageUrl, String publishedAt, String category) {
+        VBox card = new VBox(10);
+        card.setPadding(new Insets(15));
+        
+        // Category-specific border colors
+        String borderColor = getCategoryColor(category);
+        card.setStyle("-fx-background-color: #ffffff; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: " + borderColor + "; -fx-border-width: 2; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);");
+        card.setMaxWidth(500);
+        card.setMinWidth(480);
+        
+        // Category header with emoji
+        Label categoryLabel = new Label(getCategoryEmoji(category) + " " + capitalize(category).toUpperCase());
+        categoryLabel.setStyle("-fx-font-size: 12; -fx-font-weight: bold; -fx-text-fill: " + borderColor + "; -fx-padding: 0 0 5 0;");
+        card.getChildren().add(categoryLabel);
+        
+        // Add image if available
+        if (imageUrl != null && !imageUrl.isEmpty()) {
             try {
-                java.awt.Desktop.getDesktop().browse(new java.net.URI(urlSource));
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                Image image = new Image(imageUrl, 460, 250, true, true, true);
+                ImageView imageView = new ImageView(image);
+                imageView.setFitWidth(460);
+                imageView.setFitHeight(250);
+                imageView.setPreserveRatio(true);
+                imageView.setStyle("-fx-background-radius: 8;");
+                card.getChildren().add(imageView);
+            } catch (Exception e) {
+                // If image fails to load, add a category-specific placeholder
+                Label imagePlaceholder = new Label(getCategoryEmoji(category) + " Image not available");
+                imagePlaceholder.setStyle("-fx-font-size: 14; -fx-text-fill: #999; -fx-padding: 20; -fx-background-color: #f5f5f5; -fx-background-radius: 8;");
+                imagePlaceholder.setAlignment(Pos.CENTER);
+                imagePlaceholder.setMaxWidth(460);
+                imagePlaceholder.setPrefHeight(100);
+                card.getChildren().add(imagePlaceholder);
             }
-        });
-
-        textContainer.getChildren().addAll(title, desc, link);
-        card.getChildren().add(textContainer);
-
+        } else {
+            // Add category-specific placeholder when no image URL
+            Label imagePlaceholder = new Label(getCategoryEmoji(category) + " " + capitalize(category) + " News");
+            imagePlaceholder.setStyle("-fx-font-size: 16; -fx-text-fill: " + borderColor + "; -fx-font-weight: bold; -fx-padding: 20; -fx-background-color: #f9f9f9; -fx-background-radius: 8;");
+            imagePlaceholder.setAlignment(Pos.CENTER);
+            imagePlaceholder.setMaxWidth(460);
+            imagePlaceholder.setPrefHeight(80);
+            card.getChildren().add(imagePlaceholder);
+        }
+        
+        // Title
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #333;");
+        titleLabel.setWrapText(true);
+        titleLabel.setMaxWidth(450);
+        
+        // Source and date info
+        HBox infoBox = new HBox(10);
+        Label sourceLabel = new Label("📰 " + source);
+        sourceLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #666; -fx-font-style: italic;");
+        
+        if (publishedAt != null && !publishedAt.isEmpty()) {
+            String formattedDate = formatDate(publishedAt);
+            Label dateLabel = new Label("🕒 " + formattedDate);
+            dateLabel.setStyle("-fx-font-size: 12; -fx-text-fill: #666;");
+            infoBox.getChildren().addAll(sourceLabel, dateLabel);
+        } else {
+            infoBox.getChildren().add(sourceLabel);
+        }
+        
+        // Description
+        Label descLabel = new Label(description);
+        descLabel.setStyle("-fx-font-size: 14; -fx-text-fill: #555; -fx-line-spacing: 2px;");
+        descLabel.setWrapText(true);
+        descLabel.setMaxWidth(450);
+        
+        card.getChildren().addAll(titleLabel, infoBox, descLabel);
+        
+        // Read more link
+        if (!url.isEmpty()) {
+            Hyperlink readMoreLink = new Hyperlink("📖 Read Full Article");
+            readMoreLink.setStyle("-fx-text-fill: " + borderColor + "; -fx-font-size: 14; -fx-font-weight: bold;");
+            readMoreLink.setOnAction(e -> {
+                try {
+                    java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+            card.getChildren().add(readMoreLink);
+        }
+        
         return card;
+    }
+
+    // Get category-specific colors
+    private String getCategoryColor(String category) {
+        switch (category.toLowerCase()) {
+            case "business": return "#753a88";
+            case "entertainment": return "#f8628a";
+            case "health": return "#a8e063";
+            case "science": return "#516395";
+            case "sports": return "#f9d423";
+            case "general":
+            default: return "#56c7e3";
+        }
+    }
+
+    // Get category-specific emojis
+    private String getCategoryEmoji(String category) {
+        switch (category.toLowerCase()) {
+            case "business": return "💼";
+            case "entertainment": return "🎬";
+            case "health": return "🏥";
+            case "science": return "🔬";
+            case "sports": return "⚽";
+            case "general":
+            default: return "📰";
+        }
+    }
+
+    private String formatDate(String publishedAt) {
+        try {
+            String[] parts = publishedAt.split("T");
+            if (parts.length > 0) {
+                return parts[0]; // Return just the date part
+            }
+        } catch (Exception e) {
+            // Ignore formatting errors
+        }
+        return publishedAt;
     }
 
     private String capitalize(String text) {
